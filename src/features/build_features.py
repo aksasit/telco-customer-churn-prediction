@@ -11,7 +11,7 @@ def _map_binary_series(s: pd.Series) -> pd.Series:
     """ 
     
     # Get unique values and remove NaN
-    vals = list(pd.Series(s.dropna().unique())).astype(str)
+    vals = list(pd.Series(s.dropna().unique()).astype(str))
     valset = set(vals) 
     
     # === DETERMINISTIC BINARY MAPPINGS ===
@@ -46,7 +46,7 @@ def build_features(df: pd.DataFrame, target_col: str = "Churn") -> pd.DataFrame:
     serving pipeline to ensure prediction accuracy.
 
     """
-    df - df.copy()
+    df = df.copy()
     print(f"🔧 Starting feature engineering on {df.shape[1]} columns...")
     
     # === STEP 1: Identify Feature Types ===

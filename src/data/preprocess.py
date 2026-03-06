@@ -18,7 +18,7 @@ def preprocess_data(df: pd.DataFrame, target_col: str = "Churn") -> pd.DataFrame
             df = df.drop(columns=[col])
             
     # Map target column to 0/1 if it is Yes/No
-    if target_col in df.columns and df[target_col].dtype == "object":
+    if target_col in df.columns and (df["Churn"].dtype == "object" or df["Churn"].dtype == "string"):
         df[target_col] = df[target_col].str.strip().map({"No":0, "Yes": 1})
         
     # Total Charges often has blanks in the dataset
