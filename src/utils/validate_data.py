@@ -1,3 +1,4 @@
+import pandas as pd
 import great_expectations as ge
 from typing import Tuple, List
 
@@ -13,15 +14,20 @@ def validate_telco_data(df) -> Tuple[bool, List[str]]:
     """
     print("🔍 Starting data validation with Great Expectations...")
     
+    # FIX: TotalCharges is stored as string in raw Telco CSV (blank values for new customers)
+    # Must convert to numeric before GE can do range comparisons
+    df = df.copy()
+    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+    
     # Convert pandas DataFrame to Great Expectations Dataset
-    ge_df = df.dataset.PandasDataset(df)
+    ge_df = ge.dataset.PandasDataset(df)
     
     # === SCHEMA VALIDATION - ESSENTIAL COLUMNS ===
     print("   📋 Validating schema and required columns...")
     
     # Customer identifier must exist (required for business operations) 
     ge_df.expect_column_to_exist("customerID")
-    ge_df.expect_column_to_not_be_null("customerID")
+    ge_df.expect_column_values_to_not_be_null("customerID")
     
     # Core demographic features
     ge_df.expect_column_to_exist("gender")
@@ -43,12 +49,12 @@ def validate_telco_data(df) -> Tuple[bool, List[str]]:
     print("   💼 Validating business logic constraints...")
     
     # Gender must be one of expected values (data integrity)
-    ge_df.expect_column_value_to_be_in_set("gender", ["Male", "Female"])
+    ge_df.expect_column_values_to_be_in_set("gender", ["Male", "Female"])
     
     # Yes/No fields must have valid values
-    ge_df.expect_column_value_to_be_in_set("Partner", ["Yes", "No"])
-    ge_df.expect_column_value_to_be_in_set("Dependents", ["Yes", "No"])
-    ge_df.expect_column_value_to_be_in_set("PhoneService", ["Yes", "No"])
+    ge_df.expect_column_values_to_be_in_set("Partner", ["Yes", "No"])
+    ge_df.expect_column_values_to_be_in_set("Dependents", ["Yes", "No"])
+    ge_df.expect_column_values_to_be_in_set("PhoneService", ["Yes", "No"])
     
     # Contract types must be valid (business constraint)
     ge_df.expect_column_values_to_be_in_set(
