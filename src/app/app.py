@@ -63,7 +63,90 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"]
+)
+
+# ── request logging custom middleware ────────────────────────────────────────────────
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    ms = (time.perf_counter() - t0) * 1000
+    logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({ms:.1f}ms)")  
+    
+    return response
+
+ 
+# ── schema ────────────────────────────────────────────────────────────────────
+class CustomerData(BaseModel):
+    gender: str = Field(..., example="Male")
+    Partner: str = Field(..., example="Yes")
+    Dependents: str = Field(..., example="No")
+    PhoneService: str = Field(..., example="Yes")
+    MultipleLines: str = Field(..., example="No")
+    InternetService: str = Field(..., example="Fiber optic")
+    OnlineSecurity: str = Field(..., example="No")
+    OnlineBackup: str = Field(..., example="Yes")
+    DeviceProtection: str = Field(..., example="No")
+    TechSupport: str = Field(..., example="No")
+    StreamingTV: str = Field(..., example="Yes")
+    StreamingMovies: str = Field(..., example="No")
+    Contract: str = Field(..., example="Month-to-month")
+    PaperlessBilling: str = Field(..., example="Yes")
+    PaymentMethod: str = Field(..., example="Electronic check")
+    tenure: int = Field(..., ge=0, le=120, example=12)
+    MonthlyCharges: float = Field(..., ge=0, le=200, example=70.35)
+    TotalCharges: float = Field(..., ge=0, example=844.20)
+
+    @validator("gender")
+    def valid_gender(cls, v):
+        if v not in ("Male", "Female"):
+            raise ValueError("Gender Must be Male or Female")
+        return v
+
+    @validator("Contract")
+    def valid_contract(cls, v):
+        allowed = ("Month-to-month", "One year", "Two year")
+        if v not in allowed:
+            raise ValueError(f"Contract must be one of {allowed}")
+        return v
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "gender": "Female", "Partner": "Yes", "Dependents": "No",
+                "PhoneService": "Yes", "MultipleLines": "No",
+                "InternetService": "Fiber optic", "OnlineSecurity": "No",
+                "OnlineBackup": "Yes", "DeviceProtection": "No",
+                "TechSupport": "No", "StreamingTV": "Yes",
+                "StreamingMovies": "No", "Contract": "Month-to-month",
+                "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check",
+                "tenure": 12, "MonthlyCharges": 70.35, "TotalCharges": 844.20,
+            }
+        }
+        
+class PredictionResponse(BaseModel):
+    churn: bool
+    probability: float
+    risk_level: str
+    recommendation: str
+    
+# ── endpoints ─────────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def serve_ui():
+    """Serve the frontend SPA"""
+    
+    
+@app.get("/health")
+async def health():
+    """Liveness probe"""
+    return {"status": "healthy", "version": app.version}
 
 
-   
-
+@app.post("/predict", res)
